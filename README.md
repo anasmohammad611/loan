@@ -1,3 +1,6 @@
+###API LIST
+
+
 ### Create Loan
 
 **Description:** Create a new loan request with user PAN, loan amount, and term. The response indicates success and provides a message.
