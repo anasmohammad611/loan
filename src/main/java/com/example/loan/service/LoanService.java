@@ -133,21 +133,21 @@ public class LoanService {
         String pan = getLoanDetailsReq.getPan();
 
         Optional<Loan> optionalLoan = loanRepo.findByCustomer_PanAndLatestStatus(pan);
-        if(optionalLoan.isEmpty()) {
+        if (optionalLoan.isEmpty()) {
             return GetLoanDetailsRes.builder().success(false).message("you dont have any loans").build();
         }
         Loan loan = optionalLoan.get();
 
-        if(loan.getStatus().equals(Status.PENDING)) {
+        if (loan.getStatus().equals(Status.PENDING)) {
             return GetLoanDetailsRes.builder().success(true).message("Your loan is in a pending state").build();
-        } else if(loan.getStatus().equals(Status.DENIED)) {
+        } else if (loan.getStatus().equals(Status.DENIED)) {
             return GetLoanDetailsRes.builder().success(true).message("Your loan has been denied.").build();
-        } else if(loan.getStatus().equals(Status.PAID)) {
+        } else if (loan.getStatus().equals(Status.PAID)) {
             return GetLoanDetailsRes.builder().success(true).message("Your loan has been Paid").build();
         }
 
         Optional<LoanDetail> optionalLoanDetail = loanDetailRepo.findLoanDetailByLoan_LoanId(loan.getLoanId());
-        if(optionalLoanDetail.isEmpty()) {
+        if (optionalLoanDetail.isEmpty()) {
             throw new RuntimeException("Unexpected error while fetching loan details");
         }
         LoanDetail loanDetail = optionalLoanDetail.get();
@@ -166,7 +166,7 @@ public class LoanService {
         List<ScheduledPaymentsDto> scheduledPaymentsDtos = new ArrayList<>();
 
         int scheduledInstalMents = loanDetail.getLoan().getLoanTerm() - loanDetail.getInstalmentNumber();
-        for(int i = 0; i < scheduledInstalMents; i++) {
+        for (int i = 0; i < scheduledInstalMents; i++) {
             scheduledPaymentsDtos.add(
                     ScheduledPaymentsDto
                             .builder()
@@ -188,21 +188,21 @@ public class LoanService {
         String pan = payMyEMIReq.getPan();
 
         Optional<Loan> optionalLoan = loanRepo.findByCustomer_PanAndStatus(pan, String.valueOf(Status.APPROVED));
-        if(optionalLoan.isEmpty())
+        if (optionalLoan.isEmpty())
             throw new RuntimeException("Loan not found");
         Loan loan = optionalLoan.get();
 
         Optional<LoanDetail> optionalLoanDetail = loanDetailRepo.findLoanDetailByLoan_LoanId(loan.getLoanId());
-        if(optionalLoanDetail.isEmpty()) {
+        if (optionalLoanDetail.isEmpty()) {
             throw new RuntimeException("Unexpected error while fetching loan details");
         }
         LoanDetail loanDetail = optionalLoanDetail.get();
 
-        if(amt < loanDetail.getInstalmentAmt())
+        if (amt < loanDetail.getInstalmentAmt())
             return PayMyEMIRes.builder().message("amount cannot be less than EMI").build();
 
         double totalDue = loanDetail.getInstalmentAmt() * loan.getLoanTerm() - (loanDetail.getInstalmentNumber() * loanDetail.getInstalmentAmt());
-        if(amt > totalDue) {
+        if (amt > totalDue) {
             loanDetail.setStatus(Status.PAID);
             loanDetail.setDueDate(addNMonth(loanDetail.getDueDate(), loan.getLoanTerm()));
             loan.setStatus(Status.PAID);
