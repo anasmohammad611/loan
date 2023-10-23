@@ -35,7 +35,7 @@ public class LoanService {
         Double loanAmt = createLoanReq.getLoanAmt();
         int loanTermInMonths = createLoanReq.getLoanTerm();
 
-        Optional<Loan> optionalLoan = loanRepo.findByCustomer_PanAndStatusOrStatus(pan, Status.PENDING, Status.APPROVED);
+        Optional<Loan> optionalLoan = loanRepo.findByCustomer_PanAndStatusOrStatus(pan);
         if (optionalLoan.isPresent()) {
             Loan loan = optionalLoan.get();
             if (loan.getStatus().equals(Status.PENDING)) {
@@ -85,7 +85,7 @@ public class LoanService {
         boolean approve = approveLoanReq.getApprove();
         String pan = approveLoanReq.getPan();
 
-        Optional<Loan> optionalLoan = loanRepo.findByCustomer_PanAndStatus(pan, Status.PENDING);
+        Optional<Loan> optionalLoan = loanRepo.findByCustomer_PanAndStatus(pan, String.valueOf(Status.PENDING));
         if (optionalLoan.isEmpty())
             throw new RuntimeException("Loan not found for the pan: " + pan);
         Loan loan = optionalLoan.get();
@@ -101,7 +101,6 @@ public class LoanService {
         return ApproveLoanRes
                 .builder()
                 .success(true)
-                .message("Loan has been approved for you. Enjoy MF!")
                 .build();
     }
 
@@ -153,18 +152,7 @@ public class LoanService {
         }
         LoanDetail loanDetail = optionalLoanDetail.get();
 
-        List<ScheduledPaymentsDto> paymentsList = new ArrayList<>();
-
-        int scheduledInstalMents = loanDetail.getLoan().getLoanTerm() - loanDetail.getInstalmentNumber();
-        for(int i = 0; i < scheduledInstalMents; i++) {
-            paymentsList.add(
-                    ScheduledPaymentsDto
-                            .builder()
-                            .dueAmount(loanDetail.getInstalmentAmt())
-                            .dueDate(convertToReadableDate(addNMonth(loanDetail.getDueDate(), i)))
-                            .build()
-            );
-        }
+        List<ScheduledPaymentsDto> paymentsList = generateScheduledInstalments(loanDetail);
 
         return GetLoanDetailsRes
                 .builder()
@@ -174,7 +162,65 @@ public class LoanService {
                 .build();
     }
 
+    private List<ScheduledPaymentsDto> generateScheduledInstalments(LoanDetail loanDetail) {
+        List<ScheduledPaymentsDto> scheduledPaymentsDtos = new ArrayList<>();
+
+        int scheduledInstalMents = loanDetail.getLoan().getLoanTerm() - loanDetail.getInstalmentNumber();
+        for(int i = 0; i < scheduledInstalMents; i++) {
+            scheduledPaymentsDtos.add(
+                    ScheduledPaymentsDto
+                            .builder()
+                            .dueAmount(loanDetail.getInstalmentAmt())
+                            .dueDate(convertToReadableDate(addNMonth(loanDetail.getDueDate(), i)))
+                            .build()
+            );
+        }
+
+        return scheduledPaymentsDtos;
+    }
+
     private String convertToReadableDate(Timestamp timestamp) {
         return new SimpleDateFormat("d MMM yyyy").format(new Date(timestamp.getTime()));
+    }
+
+    public PayMyEMIRes payMyEMI(PayMyEMIReq payMyEMIReq) {
+        Double amt = payMyEMIReq.getPayAmt();
+        String pan = payMyEMIReq.getPan();
+
+        Optional<Loan> optionalLoan = loanRepo.findByCustomer_PanAndStatus(pan, String.valueOf(Status.APPROVED));
+        if(optionalLoan.isEmpty())
+            throw new RuntimeException("Loan not found");
+        Loan loan = optionalLoan.get();
+
+        Optional<LoanDetail> optionalLoanDetail = loanDetailRepo.findLoanDetailByLoan_LoanId(loan.getLoanId());
+        if(optionalLoanDetail.isEmpty()) {
+            throw new RuntimeException("Unexpected error while fetching loan details");
+        }
+        LoanDetail loanDetail = optionalLoanDetail.get();
+
+        if(amt < loanDetail.getInstalmentAmt())
+            return PayMyEMIRes.builder().message("amount cannot be less than EMI").build();
+
+        double totalDue = loanDetail.getInstalmentAmt() * loan.getLoanTerm() - (loanDetail.getInstalmentNumber() * loanDetail.getInstalmentAmt());
+        if(amt > totalDue) {
+            loanDetail.setStatus(Status.PAID);
+            loanDetail.setDueDate(addNMonth(loanDetail.getDueDate(), loan.getLoanTerm()));
+            loan.setStatus(Status.PAID);
+            loanRepo.save(loan);
+            loanDetailRepo.save(loanDetail);
+            return PayMyEMIRes.builder().pan(pan).message("amount has been repaid. Any extra amount will be repaid").build();
+        }
+
+        int totalInstalmentsPaying = (int) (amt / loanDetail.getInstalmentAmt());
+        loanDetail.setDueDate(addNMonth(loanDetail.getDueDate(), 1));
+        loanDetail.setInstalmentNumber(loanDetail.getInstalmentNumber() + totalInstalmentsPaying);
+        loanDetailRepo.save(loanDetail);
+
+        return PayMyEMIRes
+                .builder()
+                .pan(pan)
+                .remainingDues(generateScheduledInstalments(loanDetail))
+                .message(totalInstalmentsPaying + " has been paid. Extra amount will be repaid")
+                .build();
     }
 }

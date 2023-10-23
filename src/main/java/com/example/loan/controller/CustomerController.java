@@ -1,10 +1,7 @@
 package com.example.loan.controller;
 
 
-import com.example.loan.dto.CreateNewUserReq;
-import com.example.loan.dto.CreateNewUserRes;
-import com.example.loan.dto.GetLoanDetailsReq;
-import com.example.loan.dto.GetLoanDetailsRes;
+import com.example.loan.dto.*;
 import com.example.loan.service.CustomerService;
 import com.example.loan.service.LoanService;
 import lombok.extern.slf4j.Slf4j;
@@ -37,6 +34,12 @@ public class CustomerController {
     public ResponseEntity<?> getLoanDetails(@RequestBody GetLoanDetailsReq getLoanDetailsReq) {
         GetLoanDetailsRes getLoanDetailsRes = loanService.getLoanDetails(getLoanDetailsReq);
         return new ResponseEntity<>(getLoanDetailsRes, HttpStatus.OK);
+    }
+
+    @PostMapping("/payMyEMI")
+    public ResponseEntity<?> payMyEMI(@RequestBody PayMyEMIReq payMyEMIReq) {
+        PayMyEMIRes payMyEMIRes = loanService.payMyEMI(payMyEMIReq);
+        return new ResponseEntity<>(payMyEMIRes, HttpStatus.OK);
     }
 
 }

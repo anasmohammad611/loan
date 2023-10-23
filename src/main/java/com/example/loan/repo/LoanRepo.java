@@ -13,11 +13,14 @@ import java.util.Optional;
 @Repository
 public interface LoanRepo extends JpaRepository<Loan, Long> {
 
-    Optional<Loan> findByCustomer_PanAndStatusOrStatus(String pan, Status pending, Status approved);
+    @Query(value = "select * from loan inner join public.customer c on c.customer_id = loan.fk_customer_id where c.pan = :pan and (status in ('PENDING', 'APPROVED'))", nativeQuery = true)
+    Optional<Loan> findByCustomer_PanAndStatusOrStatus(String pan);
 
     List<Loan> findLoansByStatus(Status status);
 
-    Optional<Loan> findByCustomer_PanAndStatus(String pan, Status pending);
+
+    @Query(value = "select * from loan inner join public.customer c on c.customer_id = loan.fk_customer_id where c.pan = :pan and loan.status = :status", nativeQuery = true)
+    Optional<Loan> findByCustomer_PanAndStatus(String pan, String status);
 
     @Query(value = "select * from loan inner join public.customer c on c.customer_id = loan.fk_customer_id where c.pan = :pan order by created_at desc limit 1", nativeQuery = true)
     Optional<Loan> findByCustomer_PanAndLatestStatus(String pan);
