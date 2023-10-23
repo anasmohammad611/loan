@@ -24,4 +24,6 @@ public class LoanController {
         return new ResponseEntity<>(createLoanRes, HttpStatus.OK);
     }
 
+
+
 }

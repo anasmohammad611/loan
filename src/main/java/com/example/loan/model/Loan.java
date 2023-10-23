@@ -22,8 +22,8 @@ import javax.persistence.*;
 public class Loan {
 
 	@Id
-	@GeneratedValue(generator="SEQ_users_user_id")
-	@SequenceGenerator(name="SEQ_users_user_id",sequenceName="SEQ_users_user_id", allocationSize=1)
+	@GeneratedValue(generator="SEQ_loan_loan_id")
+	@SequenceGenerator(name="SEQ_loan_loan_id",sequenceName="SEQ_loan_loan_id", allocationSize=1)
 	@Column(name="loan_id")
 	private long loanId;
 
