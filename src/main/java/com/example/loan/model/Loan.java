@@ -14,24 +14,26 @@ import javax.persistence.*;
  * The type User detail.
  */
 @Entity
-@Table(name="loan")
+@Table(name = "loan")
 @Data
 @Builder
 @AllArgsConstructor
 @NoArgsConstructor
 public class Loan {
 
-	@Id
-	@GeneratedValue(generator="SEQ_loan_loan_id")
-	@SequenceGenerator(name="SEQ_loan_loan_id",sequenceName="SEQ_loan_loan_id", allocationSize=1)
-	@Column(name="loan_id")
-	private long loanId;
+    @Id
+    @GeneratedValue(generator = "SEQ_loan_loan_id")
+    @SequenceGenerator(name = "SEQ_loan_loan_id", sequenceName = "SEQ_loan_loan_id", allocationSize = 1)
+    @Column(name = "loan_id")
+    private long loanId;
 
-	@OneToOne
-	@JoinColumn(name = "fk_user_id", referencedColumnName = "user_id" )
-	private Users users;
+    @OneToOne
+    @JoinColumn(name = "fk_customer_id", referencedColumnName = "customer_id")
+    private Customer customer;
 
-	private double loanAmt;
-	private int loanTerm;
-	private Status status;
+    private double loanAmt;
+    private int loanTerm;
+
+    @Enumerated(EnumType.STRING)
+    private Status status;
 }
