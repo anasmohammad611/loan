@@ -3,8 +3,8 @@ package com.example.loan.service;
 
 import com.example.loan.dto.CreateNewUserReq;
 import com.example.loan.dto.CreateNewUserRes;
-import com.example.loan.model.Users;
-import com.example.loan.repo.UsersRepo;
+import com.example.loan.model.Customer;
+import com.example.loan.repo.CustomerRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
@@ -12,44 +12,44 @@ import java.util.List;
 import java.util.Optional;
 
 @Service
-public class UsersService {
+public class CustomerService {
 
 
     @Autowired
-    private UsersRepo usersRepo;
+    private CustomerRepo customerRepo;
 
 
     public CreateNewUserRes createNewUser(CreateNewUserReq createNewUserReq) {
         String name = createNewUserReq.getName();
         String pan = createNewUserReq.getPan();
 
-        Optional<Users> optionalUsers = getUsers(pan);
-        if(optionalUsers.isPresent())
+        Optional<Customer> optionalUsers = getUsers(pan);
+        if (optionalUsers.isPresent())
             return CreateNewUserRes.builder().success(false).message("User with same pan number already exist").build();
 
-        Users users = Users
+        Customer customer = Customer
                 .builder()
                 .name(name)
                 .pan(pan)
                 .build();
 
-        usersRepo.save(users);
+        customerRepo.save(customer);
 
         return CreateNewUserRes.builder().success(true).message("User created").build();
     }
 
-    private Optional<Users> getUsers(String pan) {
-        Optional<Users> optionalUsers = usersRepo.findByPan(pan);
+    private Optional<Customer> getUsers(String pan) {
+        Optional<Customer> optionalUsers = customerRepo.findByPan(pan);
         return optionalUsers;
     }
 
-    public List<Users> getAllUsers() {
-        return usersRepo.findAll();
+    public List<Customer> getAllCustomer() {
+        return customerRepo.findAll();
     }
 
-    public Users getUserByPan(String pan) {
-        Optional<Users> optionalUsers = getUsers(pan);
-        if(optionalUsers.isEmpty())
+    public Customer getUserByPan(String pan) {
+        Optional<Customer> optionalUsers = getUsers(pan);
+        if (optionalUsers.isEmpty())
             throw new RuntimeException("User pan not found");
 
         return optionalUsers.get();
