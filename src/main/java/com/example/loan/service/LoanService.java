@@ -1,10 +1,7 @@
 package com.example.loan.service;
 
 
-import com.example.loan.dto.ApproveLoanReq;
-import com.example.loan.dto.ApproveLoanRes;
-import com.example.loan.dto.CreateLoanReq;
-import com.example.loan.dto.CreateLoanRes;
+import com.example.loan.dto.*;
 import com.example.loan.model.Customer;
 import com.example.loan.model.Loan;
 import com.example.loan.model.LoanDetail;
@@ -15,10 +12,9 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 
 import java.sql.Timestamp;
-import java.util.Calendar;
-import java.util.Date;
-import java.util.List;
-import java.util.Optional;
+import java.text.SimpleDateFormat;
+import java.util.*;
+
 
 @Service
 public class LoanService {
@@ -39,11 +35,13 @@ public class LoanService {
         Double loanAmt = createLoanReq.getLoanAmt();
         int loanTermInMonths = createLoanReq.getLoanTerm();
 
-        Optional<Loan> optionalLoan = loanRepo.findByCustomer_Pan(pan);
+        Optional<Loan> optionalLoan = loanRepo.findByCustomer_PanAndStatusOrStatus(pan, Status.PENDING, Status.APPROVED);
         if (optionalLoan.isPresent()) {
             Loan loan = optionalLoan.get();
             if (loan.getStatus().equals(Status.PENDING)) {
-                return CreateLoanRes.builder().success(false).message("You already have a loan").build();
+                return CreateLoanRes.builder().success(false).message("You already have a loan in a pending state").build();
+            } else {
+                return CreateLoanRes.builder().success(false).message("You already have a loan in a approved state").build();
             }
         }
 
@@ -55,6 +53,7 @@ public class LoanService {
                 .loanTerm(loanTermInMonths)
                 .status(Status.PENDING)
                 .customer(user)
+                .createdAt(new Timestamp(new Date().getTime()))
                 .build();
 
         loanRepo.save(loan);
@@ -86,7 +85,7 @@ public class LoanService {
         boolean approve = approveLoanReq.getApprove();
         String pan = approveLoanReq.getPan();
 
-        Optional<Loan> optionalLoan = loanRepo.findByCustomer_Pan(pan);
+        Optional<Loan> optionalLoan = loanRepo.findByCustomer_PanAndStatus(pan, Status.PENDING);
         if (optionalLoan.isEmpty())
             throw new RuntimeException("Loan not found for the pan: " + pan);
         Loan loan = optionalLoan.get();
@@ -114,7 +113,7 @@ public class LoanService {
         LoanDetail loanDetail = LoanDetail
                 .builder()
                 .instalmentNumber(0)
-                .dueDate(addOneMonth(new Timestamp(new Date().getTime())))
+                .dueDate(addNMonth(new Timestamp(new Date().getTime()), 1))
                 .loan(loan)
                 .instalmentAmt(instalment)
                 .status(Status.PENDING)
@@ -123,11 +122,59 @@ public class LoanService {
         loanDetailRepo.save(loanDetail);
     }
 
-    private Timestamp addOneMonth(Timestamp timestamp) {
+    private Timestamp addNMonth(Timestamp timestamp, int n) {
         Calendar calendar = Calendar.getInstance();
         calendar.setTimeInMillis(timestamp.getTime());
-        calendar.add(Calendar.MONTH, 1);
+        calendar.add(Calendar.MONTH, n);
 
         return new Timestamp(calendar.getTimeInMillis());
+    }
+
+    public GetLoanDetailsRes getLoanDetails(GetLoanDetailsReq getLoanDetailsReq) {
+        String pan = getLoanDetailsReq.getPan();
+
+        Optional<Loan> optionalLoan = loanRepo.findByCustomer_PanAndLatestStatus(pan);
+        if(optionalLoan.isEmpty()) {
+            return GetLoanDetailsRes.builder().success(false).message("you dont have any loans").build();
+        }
+        Loan loan = optionalLoan.get();
+
+        if(loan.getStatus().equals(Status.PENDING)) {
+            return GetLoanDetailsRes.builder().success(true).message("Your loan is in a pending state").build();
+        } else if(loan.getStatus().equals(Status.DENIED)) {
+            return GetLoanDetailsRes.builder().success(true).message("Your loan has been denied.").build();
+        } else if(loan.getStatus().equals(Status.PAID)) {
+            return GetLoanDetailsRes.builder().success(true).message("Your loan has been Paid").build();
+        }
+
+        Optional<LoanDetail> optionalLoanDetail = loanDetailRepo.findLoanDetailByLoan_LoanId(loan.getLoanId());
+        if(optionalLoanDetail.isEmpty()) {
+            throw new RuntimeException("Unexpected error while fetching loan details");
+        }
+        LoanDetail loanDetail = optionalLoanDetail.get();
+
+        List<ScheduledPaymentsDto> paymentsList = new ArrayList<>();
+
+        int scheduledInstalMents = loanDetail.getLoan().getLoanTerm() - loanDetail.getInstalmentNumber();
+        for(int i = 0; i < scheduledInstalMents; i++) {
+            paymentsList.add(
+                    ScheduledPaymentsDto
+                            .builder()
+                            .dueAmount(loanDetail.getInstalmentAmt())
+                            .dueDate(convertToReadableDate(addNMonth(loanDetail.getDueDate(), i)))
+                            .build()
+            );
+        }
+
+        return GetLoanDetailsRes
+                .builder()
+                .paymentsDto(paymentsList)
+                .success(true)
+                .message("check the details")
+                .build();
+    }
+
+    private String convertToReadableDate(Timestamp timestamp) {
+        return new SimpleDateFormat("d MMM yyyy").format(new Date(timestamp.getTime()));
     }
 }

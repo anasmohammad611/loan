@@ -3,7 +3,10 @@ package com.example.loan.service;
 
 import com.example.loan.dto.CreateNewUserReq;
 import com.example.loan.dto.CreateNewUserRes;
+import com.example.loan.dto.GetLoanDetailsReq;
+import com.example.loan.dto.GetLoanDetailsRes;
 import com.example.loan.model.Customer;
+import com.example.loan.model.Loan;
 import com.example.loan.repo.CustomerRepo;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;

@@ -8,6 +8,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import javax.persistence.*;
+import java.sql.Timestamp;
 
 
 /**
@@ -27,7 +28,7 @@ public class Loan {
     @Column(name = "loan_id")
     private long loanId;
 
-    @OneToOne
+    @ManyToOne
     @JoinColumn(name = "fk_customer_id", referencedColumnName = "customer_id")
     private Customer customer;
 
@@ -36,4 +37,6 @@ public class Loan {
 
     @Enumerated(EnumType.STRING)
     private Status status;
+
+    private Timestamp createdAt;
 }

@@ -3,7 +3,10 @@ package com.example.loan.controller;
 
 import com.example.loan.dto.CreateNewUserReq;
 import com.example.loan.dto.CreateNewUserRes;
+import com.example.loan.dto.GetLoanDetailsReq;
+import com.example.loan.dto.GetLoanDetailsRes;
 import com.example.loan.service.CustomerService;
+import com.example.loan.service.LoanService;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
@@ -21,10 +24,19 @@ public class CustomerController {
     @Autowired
     private CustomerService customerService;
 
+    @Autowired
+    private LoanService loanService;
+
     @PostMapping("/createNewUser")
     public ResponseEntity<?> createNewUser(@RequestBody CreateNewUserReq createNewUserReq) {
         CreateNewUserRes createNewUserRes = customerService.createNewUser(createNewUserReq);
         return new ResponseEntity<>(createNewUserRes, HttpStatus.OK);
+    }
+
+    @PostMapping("/getLoanDetails")
+    public ResponseEntity<?> getLoanDetails(@RequestBody GetLoanDetailsReq getLoanDetailsReq) {
+        GetLoanDetailsRes getLoanDetailsRes = loanService.getLoanDetails(getLoanDetailsReq);
+        return new ResponseEntity<>(getLoanDetailsRes, HttpStatus.OK);
     }
 
 }
